@@ -27,7 +27,7 @@ const NEWS_DATA = [
     hindiSummary: 'बढ़ते तनाव से प्रमुख शिपिंग मार्ग बाधित हो रहे हैं।',
     marathiSummary: 'वाढत्या तणावामुळे प्रमुख शिपिंग मार्ग विस्कळीत.',
     image: 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=800&q=80',
-    audioSrc: '',
+    audioSrc: { en: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', hi: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
     videoSrc: 'https://assets.mixkit.co/videos/preview/mixkit-animation-of-futuristic-devices-and-a-robot-3142-large.mp4',
     isImportant: true,
     impactChain: [
@@ -454,10 +454,14 @@ function InsightScreen({ articleId, profile, lang, setLang, onBack }) {
 
   const toggleAudio = () => {
     if (isPlaying) {
-      audioRef.current?.pause();
+      window.speechSynthesis.cancel();
       setIsPlaying(false);
     } else {
-      audioRef.current?.play();
+      const textToRead = lang === 'en' ? article.title : article.hindiTitle;
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = lang === 'en' ? 'en-US' : 'hi-IN';
+      utterance.onend = () => setIsPlaying(false);
+      window.speechSynthesis.speak(utterance);
       setIsPlaying(true);
     }
   };
@@ -494,7 +498,7 @@ function InsightScreen({ articleId, profile, lang, setLang, onBack }) {
         )}
       </div>
 
-      <audio ref={audioRef} src={article.audioSrc} onEnded={() => setIsPlaying(false)} />
+      {/* Speech synthesized automatically, no <audio> tag needed for demo */}
 
       <div className="main-wrapper">
         {showVideo && article.videoSrc && (

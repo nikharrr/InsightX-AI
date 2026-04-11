@@ -14,6 +14,7 @@ from db.supabase_client import (
     get_recent_articles_with_source,
     semantic_search,
 )
+
 from pipeline.embedder import embed_text
 from pipeline.ingestor import NewsIngestor
 
@@ -33,11 +34,38 @@ def _get_ingestor(request: Request) -> NewsIngestor:
     return request.app.state.ingestor
 
 
+from datetime import datetime, timezone, timedelta
+import os
+import logging
+from db.supabase_client import log_ingestion_run
+
+logger = logging.getLogger(__name__)
+
 @router.post("/trigger")
 async def trigger_ingestion(request: Request) -> dict:
-    """Manually trigger a full ingestion run."""
-
-    return (await _get_ingestor(request).run_full_ingestion()).model_dump()
+    """Manually trigger a full ingestion run, honoring rate limits."""
+    
+    interval = int(os.getenv("INGEST_INTERVAL_SECONDS", "3600"))
+    logs = await get_ingestion_logs(limit=1)
+    
+    if logs:
+        last_run = datetime.fromisoformat(logs[0]["run_at"].replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        if (now - last_run).total_seconds() < interval:
+            logger.info("Ingestion trigger skipped due to rate limit cooldown.")
+            return {
+                "status": "skipped",
+                "reason": "rate_limited",
+                "cooldown_seconds_remaining": interval - (now - last_run).total_seconds(),
+                "last_run": last_run.isoformat()
+            }
+            
+    result = await _get_ingestor(request).run_full_ingestion()
+    await log_ingestion_run(result)
+    
+    data = result.model_dump()
+    data["status"] = "success"
+    return data
 
 
 @router.post("/query")

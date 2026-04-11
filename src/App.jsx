@@ -807,6 +807,8 @@ function InsightScreen({ articleId, articles, profile, lang, setLang, onBack }) 
     })
     .then(res => res.json())
     .then(data => {
+      console.log("RAW JSON REVEALED:", data);
+
       if (data && data.profile_used) {
         // Map backend InsightOutput to frontend expected structure
         const nextStepsMapped = data.next_steps ? data.next_steps.map(step => ({ en: step, hi: step })) : [];
@@ -852,10 +854,12 @@ function InsightScreen({ articleId, articles, profile, lang, setLang, onBack }) 
   }
 
   const getLocalizedText = (obj) => {
+    if (!obj) return '';
     return lang === 'en' ? obj.en : (lang === 'hi' ? obj.hi : obj.marathi);
   };
 
   const getPropText = (obj, enKey, hiKey, mrKey) => {
+    if (!obj) return '';
     return lang === 'en' ? obj[enKey] : (lang === 'hi' ? obj[hiKey] : (obj[mrKey] || obj[hiKey]));
   };
 

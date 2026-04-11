@@ -10,7 +10,6 @@ from db.supabase_client import bulk_insert_articles
 from ingestion.gnews import GNewsClient
 from ingestion.live_news import LiveNewsClient
 from ingestion.newsapi import NewsAPIClient
-from ingestion.youtube import YouTubeNewsClient
 from models.article import ArticleSource, IngestionResult, RawArticle
 from pipeline.deduplicator import deduplicate_within_batch, filter_new_articles
 from pipeline.embedder import embed_articles_batch
@@ -38,7 +37,6 @@ class NewsIngestor:
         self.newsapi = NewsAPIClient()
         self.gnews = GNewsClient()
         self.live_news = LiveNewsClient()
-        self.youtube = YouTubeNewsClient()
 
     async def run_full_ingestion(self) -> IngestionResult:
         """Run the full multi-source ingestion pipeline."""
@@ -51,8 +49,6 @@ class NewsIngestor:
             "newsapi_india": self.newsapi.fetch_india_news(),
             "newsapi_world": self.newsapi.fetch_everything(query="world news"),
             "gnews_categories": self.gnews.fetch_by_categories(ALL_CATEGORIES),
-            "youtube_news": self.youtube.search_news_videos(),
-            "youtube_live": self.youtube.fetch_live_news_streams(),
         }
         results = await asyncio.gather(*tasks.values(), return_exceptions=True)
         collected: dict[str, list[RawArticle]] = {}

@@ -3,7 +3,8 @@ import {
   User, ChevronRight, ArrowLeft, Languages, Headphones, MonitorPlay,
   ArrowUp, ArrowDown, Minus, TrendingUp, TrendingDown,
   BrainCircuit, GraduationCap, Briefcase, Globe,
-  Rocket, Lightbulb, CheckCircle2, XCircle, LogOut
+  Rocket, Lightbulb, CheckCircle2, XCircle, LogOut,
+  MapPin, CloudSun, Calendar
 } from 'lucide-react';
 import './App.css';
 
@@ -494,6 +495,23 @@ function FeedScreen({ profile, lang, onProfileClick, onArticleClick }) {
     feedNews = NEWS_DATA.filter(n => n.category === activeCategory);
   }
 
+  // Define forYouNews logic
+  const userData = JSON.parse(localStorage.getItem('insightx_user') || '{}');
+  const userInterests = userData.interests || [];
+  
+  const forYouNews = NEWS_DATA.filter(news => {
+    // Priority 1: Match profile-specific content
+    const hasProfileImpact = news.personalImpact && news.personalImpact[profile];
+    
+    // Priority 2: Match user interests (if any)
+    const matchesInterest = userInterests.some(interest => 
+      news.category.toLowerCase().includes(interest.toLowerCase()) || 
+      news.title.toLowerCase().includes(interest.toLowerCase())
+    );
+
+    return hasProfileImpact || matchesInterest;
+  });
+
   // Pre-defined categories
   const categories = ['All', 'Tech Innovation', 'AI & Future', 'Startups', 'Science', 'Global Trends', 'Sports', 'Entertainment', 'Lifestyle', 'Education', 'Economy', 'Careers', 'Politics'];
 
@@ -506,7 +524,24 @@ function FeedScreen({ profile, lang, onProfileClick, onArticleClick }) {
   return (
     <div className="fade-in bg-white" style={{ minHeight: '100vh' }}>
       <header className="header">
-        <div>
+        <div className="header-left">
+          <div className="context-item">
+            <MapPin size={14} />
+            <span>Pune, IN</span>
+          </div>
+          <div className="context-item divider">|</div>
+          <div className="context-item">
+            <Calendar size={14} />
+            <span>{new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+          </div>
+          <div className="context-item divider">|</div>
+          <div className="context-item">
+            <CloudSun size={14} />
+            <span>30°C</span>
+          </div>
+        </div>
+
+        <div className="header-center">
           <div className="logo-text" onClick={() => window.location.hash = 'landing'} style={{ cursor: 'pointer' }}>
             InsightX <span>AI</span>
           </div>
@@ -514,7 +549,8 @@ function FeedScreen({ profile, lang, onProfileClick, onArticleClick }) {
             {profile === 'youngExplorer' ? (lang==='en'?'Learn the World!':'दुनिया सीखें!') : (lang==='en'?'Understand the World Around You':'दुनिया को समझें')}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+        <div className="header-right">
           <button className="profile-icon" onClick={onProfileClick} title="Switch Profile">
             <User size={18} />
           </button>
@@ -693,10 +729,10 @@ function InsightScreen({ articleId, profile, lang, setLang, onBack }) {
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [showVideo, setShowVideo] = React.useState(false);
   const [selectedOpt, setSelectedOpt] = React.useState(null);
-  const audioRef = React.useRef(null);
+  const [activeTab, setActiveTab] = React.useState('summary');
 
   const getLocalizedText = (obj) => {
-    return lang === 'en' ? obj.en : (lang === 'hi' ? obj.hi : obj.marathi); // simplified handling
+    return lang === 'en' ? obj.en : (lang === 'hi' ? obj.hi : obj.marathi);
   };
 
   const getPropText = (obj, enKey, hiKey, mrKey) => {
@@ -730,113 +766,172 @@ function InsightScreen({ articleId, profile, lang, setLang, onBack }) {
   };
 
   return (
-    <div className="fade-in bg-white" style={{ minHeight: '100vh', paddingBottom: '2rem' }}>
-      <header className="insight-header main-wrapper">
-        <button className="back-btn" onClick={onBack} aria-label="Go Back" style={{width: 'fit-content'}}>
-          <ArrowLeft size={24} />
-        </button>
-        <div style={{ marginTop: '0.5rem' }}>
-          <h1 className="insight-title">{getPropText(article, 'title', 'hindiTitle', 'marathiTitle')}</h1>
-          <p className="text-muted mt-2 font-modern" style={{fontSize: '1.1rem'}}>
-            {getPropText(article, 'summary', 'hindiSummary', 'marathiSummary')}
-          </p>
-        </div>
-      </header>
-
-      {/* Multimodal Actions */}
-      <div className="multimodal-bar main-wrapper">
-        <button className="action-btn" onClick={cycleLanguage}>
-          <Languages size={18} />
-          {lang === 'en' ? 'Translate to Hindi' : 'English में पढ़ें'}
-        </button>
-        <button className="action-btn" onClick={toggleAudio}>
-          <Headphones size={18} />
-          {isPlaying ? (lang === 'en' ? 'Pause Audio' : 'ऑडियो रोकें') : (lang === 'en' ? 'Listen' : 'सुनें')}
-        </button>
-        {article.videoSrc && (
-          <button className="action-btn" onClick={() => setShowVideo(!showVideo)}>
-            <MonitorPlay size={18} />
-            {lang === 'en' ? 'Watch AI Video' : 'वीडियो देखें'}
+    <div className="fade-in bg-white insight-page-wrapper">
+      <div className="immersive-container">
+        <header className="insight-header">
+          <button className="back-btn" onClick={onBack} aria-label="Go Back">
+            <ArrowLeft size={20} /> <span>Back to Feed</span>
           </button>
-        )}
-      </div>
-
-      {/* Speech synthesized automatically, no <audio> tag needed for demo */}
-
-      <div className="main-wrapper">
-        {showVideo && article.videoSrc && (
-          <div className="insight-section" style={{ background: '#0f172a', display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-            <p style={{ color: 'white', fontSize: '0.8rem', opacity: 0.8 }} className="font-modern">
-              AI Generated Summary
+          
+          <div className="title-section">
+            <h1 className="insight-hero-title">{getPropText(article, 'title', 'hindiTitle', 'marathiTitle')}</h1>
+            <p className="insight-hero-subtitle">
+              {getPropText(article, 'summary', 'hindiSummary', 'marathiSummary')}
             </p>
-            <video style={{ width: '100%', maxWidth: '600px', borderRadius: '12px' }} controls autoPlay loop>
-              <source src={article.videoSrc} type="video/mp4" />
-            </video>
           </div>
-        )}
 
-        {article.image && !showVideo && (
-          <div style={{ width: '100%', height: 'auto', background: '#f5f5f5', borderBottom: '1px solid var(--border-color)' }}>
-            <img src={article.image} alt="News context" style={{ width: '100%', height: '280px', objectFit: 'cover', display: 'block' }} />
+          <div className="multimodal-actions">
+            <button className="pill-action-btn" onClick={cycleLanguage}>
+              <Languages size={18} />
+              {lang === 'en' ? 'Translate to Hindi' : 'English में पढ़ें'}
+            </button>
+            <button className="pill-action-btn" onClick={toggleAudio}>
+              <Headphones size={18} />
+              {isPlaying ? (lang === 'en' ? 'Pause' : 'रोकें') : (lang === 'en' ? 'Listen' : 'सुनें')}
+            </button>
+            {article.videoSrc && (
+              <button className="pill-action-btn" onClick={() => setShowVideo(!showVideo)}>
+                <MonitorPlay size={18} />
+                {lang === 'en' ? 'AI Video' : 'AI वीडियो'}
+              </button>
+            )}
           </div>
-        )}
+        </header>
 
-        {/* Young Explorer Special Features */}
-        {profile === 'youngExplorer' && article.didYouKnow && (
-          <div className="did-you-know fade-in">
-            <Lightbulb size={40} color="#ca8a04" style={{flexShrink: 0}} />
-            <div>
-              <h3 className="font-heading text-lg" style={{color: '#854d0e', marginBottom: '0.25rem'}}>Did You Know?</h3>
-              <p style={{color: '#713f12'}}>{getLocalizedText(article.didYouKnow)}</p>
+        <div className="article-columns">
+          <div className="article-main-col">
+            {showVideo && article.videoSrc && (
+              <div className="article-video-box">
+                <video controls autoPlay loop>
+                  <source src={article.videoSrc} type="video/mp4" />
+                </video>
+              </div>
+            )}
+
+            {!showVideo && article.image && (
+              <div className="article-hero-image">
+                <img src={article.image} alt="Hero" />
+              </div>
+            )}
+
+            <div className="article-tabs">
+              <button 
+                className={`article-tab ${activeTab === 'summary' ? 'active' : ''}`}
+                onClick={() => setActiveTab('summary')}
+              >
+                Summary
+              </button>
+              <button 
+                className={`article-tab ${activeTab === 'full' ? 'active' : ''}`}
+                onClick={() => setActiveTab('full')}
+              >
+                Full Article
+              </button>
+            </div>
+
+            <div className="article-body-content">
+              {activeTab === 'summary' ? (
+                <div className="summary-view fade-in">
+                   <div className="inline-image image-right">
+                     <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=400&q=80" alt="Detail" />
+                     <span className="caption">Contextual Visualization</span>
+                   </div>
+                   <p className="drop-cap">{getPropText(article, 'summary', 'hindiSummary', 'marathiSummary')}. {lang==='en'?'This development marks a significant shift in the current landscape, bringing forth new opportunities and challenges for stakeholders. Experts suggest that we are entering a pivotal moment where technological and social forces converge.':'यह विकास वर्तमान परिदृश्य में एक महत्वपूर्ण बदलाव का संकेत देता है, जो हितधारकों के लिए नए अवसर और चुनौतियां लेकर आता है।'}</p>
+                   
+                   <p>{lang==='en'?'The underlying data reveals a steady progression towards broader infrastructure support and global integration. As markets react to these shifting dynamics, the impact is being felt across multiple sectors, reinforcing the need for adaptive strategies and intelligent forecasting.':'अंतर्निहित डेटा व्यापक बुनियादी ढांचे के समर्थन और वैश्विक एकीकरण की ओर निरंतर प्रगति को प्रकट करता है।'}</p>
+                </div>
+              ) : (
+                <div className="full-view fade-in">
+                   <div className="inline-image image-left">
+                     <img src="https://images.unsplash.com/photo-1544006659-f0b21f04cb1b?auto=format&fit=crop&w=400&q=80" alt="Innovation" />
+                     <span className="caption">Expert Analysis</span>
+                   </div>
+                   <p className="drop-cap">{lang==='en'?'In an era defined by rapid transformation, the recent developments in our local and global systems present a compelling narrative of innovation and resilience. This extensive report underscores how fundamental shifts in resources and technology are reshaping established norms across the globe. As we delve deeper into the core drivers of this change, it becomes evident that the intersection of digital infrastructure and human ingenuity is at the forefront of the next economic cycle.':'तेजी से बदलाव के युग में, हमारी स्थानीय और वैश्विक प्रणालियों में हालिया घटनाक्रम नवाचार और लचीलेपन की एक सम्मोहक कहानी पेश करते हैं।'}</p>
+                   
+                   <p>{lang==='en'?'Detailed analysis from top-tier research institutions highlights the critical role of systematic integration. By aligning strategic goals with technological capabilities, organizations are finding new ways to drive growth while maintaining operational stability in uncertain times. The data suggests that companies adopting a "technology-first" mindset are outperforming their peers by a significant margin. This performance gap is expected to widen as AI-driven automation becomes the standard rather than the exception.':'शीर्ष शोध संस्थानों का विस्तृत विश्लेषण व्यवस्थित एकीकरण की महत्वपूर्ण भूमिका को उजागर करता है।'}</p>
+                   
+                   <p>{lang==='en'?'Furthermore, the social implications of these changes are becoming increasingly apparent. From educational transformations to shifting economic models, the ripple effects are pervasive, touching every aspect of modern life. Educational institutions are already beginning to pivot their curricula toward the skills of the future, focusing on high-level cognitive tasks that complement machine efficiency. This shift represents a fundamental rebranding of the workforce as we know it, with a premium placed on adaptability and lifelong learning.':'इसके अलावा, इन परिवर्तनों के सामाजिक प्रभाव तेजी से स्पष्ट होते जा रहे हैं।'}</p>
+
+                   <p>{lang==='en'?'Looking ahead, the long-term sustainability of these advancements will depend heavily on regulatory frameworks and ethical considerations. Policymakers are now tasked with the difficult challenge of fostering innovation while protecting public interests. Early indicators suggest a trend toward more unified global standards, which could significantly reduce friction in international trade and data exchange. As new data emerge daily, the ability to interpret and act on this information will be the primary differentiator for leaders in the coming decade.':'आगे बढ़ते हुए, इन प्रगतियों की दीर्घकालिक स्थिरता नियामक ढांचे और नैतिक विचारों पर निर्भर करेगी।'}</p>
+
+                   <p>{lang==='en'?'In conclusion, while the path forward presents its share of complexities, the opportunities for positive impact have never been greater. By embracing these shifts with a focus on collaborative problem-solving and ethical implementation, we can ensure that the benefits of this transformation are shared broadly across society. The key takeaway for stakeholders is clear: remain agile, stay informed, and prioritize inclusive growth in every strategic decision.':'अंत में, जबकि आगे का रास्ता अपनी जटिलताओं का हिस्सा प्रस्तुत करता है, सकारात्मक प्रभाव के अवसर कभी इतने महान नहीं रहे हैं।'}</p>
+                </div>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Impact Chain */}
-        <section className="insight-section">
-          <h2 className="section-title">
-            {profile === 'youngExplorer' ? (lang==='en'?'How Does This Work?':'यह कैसे काम करता है?') : (lang==='en'?'Chain Reaction':'प्रतिक्रिया श्रृंखला')}
-          </h2>
-          <div className="impact-chain">
-            {article.impactChain.map((node, i) => (
-              <div key={i} className="impact-node">
-                <div className={`node-dot ${node.direction}`}>
-                  {renderDirectionIcon(node.direction)}
-                </div>
-                <div className="node-text">
-                  {lang === 'en' ? node.text : (node.hindiText || node.text)}
-                </div>
+          <aside className="article-right-col">
+            <div className="sticky-panel">
+              <div className="chain-header">
+                <h2 className="chain-title">
+                  {profile === 'youngExplorer' ? 'How It Works' : 'Chain Reaction'}
+                </h2>
+                <div className="impact-badge high">High Impact</div>
               </div>
-            ))}
-          </div>
-        </section>
 
-        {/* Personal Impact */}
-        <section className="insight-section">
-          <h2 className="section-title" style={{marginBottom: '0.5rem'}}>
-            {profile === 'youngExplorer' ? (lang==='en'?'Why It Matters To You':'आपके लिए यह क्यों मायने रखता है') : (lang==='en'?'What this means for you':'आपके लिए इसका क्या अर्थ है')}
-          </h2>
-          <p className="text-sm text-muted mb-3 uppercase tracking-wide font-bold" style={{color: 'var(--accent-color)'}}>
-            ({lang==='en'?profile+' profile':profile+' प्रोफ़ाइल'})
-          </p>
-          <ul className="custom-list">
-            {(article.personalImpact[profile] || article.personalImpact.general).map((impact, i) => (
-              <li key={i}>{getLocalizedText(impact)}</li>
-            ))}
-          </ul>
-        </section>
+              <div className="vertical-chain">
+                {article.impactChain.map((node, i) => (
+                  <div key={i} className="chain-node-card">
+                    <div className={`chain-icon-box ${node.direction}`}>
+                      {renderDirectionIcon(node.direction)}
+                    </div>
+                    <div className="chain-content-box">
+                      <div className="chain-label">{lang === 'en' ? node.text : (node.hindiText || node.text)}</div>
+                      <div className="chain-desc">{lang === 'en' ? 'Direct influence on market metrics' : 'बाजार मेट्रिक्स पर सीधा प्रभाव'}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-        {/* Action Suggestions */}
-        <section className="insight-section" style={{ background: 'var(--bg-color)' }}>
-          <h2 className="section-title">
-            {profile === 'youngExplorer' ? (lang==='en'?'Things You Can Do!':'आप क्या कर सकते हैं!') : (lang==='en'?'Action Suggestions':'आगे क्या करें')}
-          </h2>
-          <ul className="custom-list">
-            {(article.whatToDo[profile] || article.whatToDo.general).map((action, i) => (
-              <li key={i}>{getLocalizedText(action)}</li>
-            ))}
-          </ul>
-        </section>
+              {profile !== 'youngExplorer' && (
+                <div className="watch-next-sidebar" style={{ marginTop: '2.5rem' }}>
+                  <h3 className="chain-title" style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
+                    {lang === 'en' ? 'Watch Next' : 'आगे क्या देखना है'}
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    {article.watchNext.map((watch, i) => (
+                      <div key={i} className="chain-node-card" style={{ padding: '1rem', alignItems: 'center' }}>
+                        <ChevronRight size={16} color="var(--accent-color)" />
+                        <span className="font-medium text-sm">{getLocalizedText(watch)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </aside>
+        </div>
+
+        {/* 🔻 BELOW ARTICLE (FULL WIDTH) */}
+        <div className="article-footer-sections">
+           <div className="footer-grid">
+              {/* Personal Impact */}
+              <section className="footer-insight-card" style={{ marginBottom: 0 }}>
+                 <h2 className="footer-section-title">
+                   {profile === 'youngExplorer' ? 'Why It Matters To You' : 'What this means for you'}
+                 </h2>
+                 <div className="profile-badge">{profile} profile</div>
+                 <ul className="footer-list">
+                   {(article.personalImpact[profile] || article.personalImpact.general).map((impact, i) => (
+                     <li key={i}>{getLocalizedText(impact)}</li>
+                   ))}
+                 </ul>
+              </section>
+
+              {/* Action Suggestions */}
+              <section className="footer-insight-card" style={{ marginBottom: 0 }}>
+                <h2 className="footer-section-title">
+                  {profile === 'youngExplorer' ? 'Things You Can Do!' : 'Action Suggestions'}
+                </h2>
+                <ul className="footer-list">
+                  {(article.whatToDo[profile] || article.whatToDo.general).map((action, i) => (
+                    <li key={i}>{getLocalizedText(action)}</li>
+                  ))}
+                </ul>
+              </section>
+           </div>
+        </div>
+      </div>
 
         {/* Quiz for Young Explorer */}
         {profile === 'youngExplorer' && article.quiz && (
@@ -871,22 +966,6 @@ function InsightScreen({ articleId, profile, lang, setLang, onBack }) {
           </div>
         )}
 
-        {/* What to watch next (hidden for young explorer to simplify) */}
-        {profile !== 'youngExplorer' && (
-          <section className="insight-section border-b-0">
-            <h2 className="section-title">
-              {lang === 'en' ? 'What to watch next' : 'आगे क्या देखना है'}
-            </h2>
-            <div className="flex flex-col gap-2">
-              {article.watchNext.map((watch, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm p-3 border rounded shadow-sm bg-white" style={{borderColor: 'var(--border-color)', borderRadius: 'var(--radius-sm)'}}>
-                  <ChevronRight size={16} color="var(--accent-color)" />
-                  <span className="font-medium">{getLocalizedText(watch)}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* Confidence & Disclaimer */}
         <section className="disclaimer text-sm text-muted">
@@ -896,6 +975,5 @@ function InsightScreen({ articleId, profile, lang, setLang, onBack }) {
           <p className="font-modern">{getLocalizedText(article.disclaimer)}</p>
         </section>
       </div>
-    </div>
   );
 }

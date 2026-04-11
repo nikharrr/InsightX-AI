@@ -12,16 +12,18 @@ export default defineConfig({
         enabled: true
       },
       manifest: {
-        name: 'ET Insights AI',
-        short_name: 'ET Insights',
-        theme_color: '#C62828',
+        name: 'InsightX AI',
+        short_name: 'InsightX',
+        description: 'Premium Editorial AI News Dashboard',
+        theme_color: '#0f172a',
         background_color: '#ffffff',
         display: 'standalone',
         icons: [
           {
-            src: '/vite.svg',
-            sizes: 'any',
-            type: 'image/svg+xml'
+            src: 'https://cdn-icons-png.flaticon.com/512/330/330703.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
       }

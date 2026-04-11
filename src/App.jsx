@@ -280,6 +280,10 @@ export default function App() {
 
   const handleProfileSelect = (selectedProfile) => {
     setProfile(selectedProfile);
+    // Persist the change
+    const savedUser = JSON.parse(localStorage.getItem('insightx_user') || '{}');
+    savedUser.role = selectedProfile;
+    localStorage.setItem('insightx_user', JSON.stringify(savedUser));
     navigate('feed');
   };
 
@@ -366,11 +370,14 @@ function LandingScreen({ onEnter, lang }) {
 }
 
 function OnboardingScreen({ onComplete, lang }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: 'student',
-    interests: []
+  const [formData, setFormData] = useState(() => {
+    const savedUser = JSON.parse(localStorage.getItem('insightx_user') || '{}');
+    return {
+      name: savedUser.name || '',
+      email: savedUser.email || '',
+      role: savedUser.role || 'student',
+      interests: savedUser.interests || []
+    };
   });
   const [interestInput, setInterestInput] = useState('');
 

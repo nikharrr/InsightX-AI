@@ -31,6 +31,7 @@ def _article_payload(article: EmbeddedArticle) -> dict[str, Any]:
         "source":       article.source.value,
         "published_at": article.published_at.astimezone(timezone.utc).isoformat(),
         "content_hash": article.content_hash,
+        "img_url":      article.image_url,
     }
 
 
@@ -179,16 +180,28 @@ async def get_recent_articles(
     source: str | None = None,
 ) -> list[dict]:
     def _query() -> list[dict]:
-        q = (
-            supabase.table("articles_raw")
-            .select("id,title,url,source,published_at,articles_enriched(categories)")
-            .order("published_at", desc=True)
-            .limit(limit)
-        )
-        if source:
-            q = q.eq("source", source)
-        
-        data = q.execute().data or []
+        def build_query(include_image: bool):
+            sel = "id,title,url,source,published_at,articles_enriched(categories)"
+            if include_image:
+                sel = "id,title,url,source,published_at,img_url,articles_enriched(categories)"
+            
+            q = (
+                supabase.table("articles_raw")
+                .select(sel)
+                .order("published_at", desc=True)
+                .limit(limit)
+            )
+            if source:
+                q = q.eq("source", source)
+            return q
+
+        try:
+            data = build_query(include_image=True).execute().data or []
+        except Exception as e:
+            if "Could not find" in str(e) or "img_url" in str(e) or "image_url" in str(e):
+                data = build_query(include_image=False).execute().data or []
+            else:
+                raise e
         for d in data:
             if d.get("articles_enriched"):
                 categories = d["articles_enriched"].get("categories", [])

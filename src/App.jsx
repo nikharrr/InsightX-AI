@@ -227,7 +227,7 @@ export default function App() {
              summary: a.source || 'Breaking News',
              hindiSummary: a.source || 'Breaking News',
              marathiSummary: a.source || 'Breaking News',
-             image: a.image_url || a.thumbnail || 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=600&h=400&q=80',
+             image: a.img_url || a.thumbnail || 'https://images.unsplash.com/photo-1581093458791-9f3c3900df4b?auto=format&fit=crop&w=600&h=400&q=80',
              url: a.url,
              isImportant: idx < 2
           }));
